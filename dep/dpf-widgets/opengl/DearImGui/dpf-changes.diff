@@ -1,0 +1,65 @@
+diff --git a/opengl/DearImGui/imgui_impl_opengl2.cpp b/opengl/DearImGui/imgui_impl_opengl2.cpp
+index 2a255be..3d30626 100644
+--- a/opengl/DearImGui/imgui_impl_opengl2.cpp
++++ b/opengl/DearImGui/imgui_impl_opengl2.cpp
+@@ -152,6 +152,7 @@ static void ImGui_ImplOpenGL2_SetupRenderState(ImDrawData* draw_data, int fb_wid
+     glShadeModel(GL_SMOOTH);
+     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+ 
++#ifndef IMGUI_DPF_BACKEND
+     // If you are using this code with non-legacy OpenGL header/contexts (which you should not, prefer using imgui_impl_opengl3.cpp!!),
+     // you may need to backup/reset/restore other state, e.g. for current shader using the commented lines below.
+     // (DO NOT MODIFY THIS FILE! Add the code in your calling function)
+@@ -173,6 +174,11 @@ static void ImGui_ImplOpenGL2_SetupRenderState(ImDrawData* draw_data, int fb_wid
+     glMatrixMode(GL_MODELVIEW);
+     glPushMatrix();
+     glLoadIdentity();
++#else
++    IM_UNUSED(draw_data);
++    IM_UNUSED(fb_width);
++    IM_UNUSED(fb_height);
++#endif
+ }
+ 
+ // OpenGL2 Render function.
+diff --git a/opengl/DearImGui/imgui_impl_opengl3.cpp b/opengl/DearImGui/imgui_impl_opengl3.cpp
+index 7d0b536..c559ba7 100644
+--- a/opengl/DearImGui/imgui_impl_opengl3.cpp
++++ b/opengl/DearImGui/imgui_impl_opengl3.cpp
+@@ -460,11 +460,19 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
+ 
+     // Setup viewport, orthographic projection matrix
+     // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
++#ifdef IMGUI_DPF_BACKEND
++    GL_CALL(glViewport(-draw_data->DisplayPos.x, draw_data->DisplayPos.y, (GLsizei)fb_width, (GLsizei)fb_height));
++    float L = 0;
++    float R = draw_data->DisplaySize.x;
++    float T = 0;
++    float B = draw_data->DisplaySize.y;
++#else
+     GL_CALL(glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height));
+     float L = draw_data->DisplayPos.x;
+     float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
+     float T = draw_data->DisplayPos.y;
+     float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
++#endif
+ #if defined(GL_CLIP_ORIGIN)
+     if (!clip_origin_lower_left) { float tmp = T; T = B; B = tmp; } // Swap top and bottom if origin is upper left
+ #endif
+diff --git a/opengl/DearImGui/imgui_demo.cpp b/opengl/DearImGui/imgui_demo.cpp
+index 10fa434..128cf00 100644
+--- a/opengl/DearImGui/imgui_demo.cpp
++++ b/opengl/DearImGui/imgui_demo.cpp
+@@ -395,12 +395,6 @@ void ImGui::ShowDemoWindow(bool* p_open)
+     if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
+     if (no_close)           p_open = NULL; // Don't pass our bool* to Begin
+ 
+-    // We specify a default position/size in case there's no data in the .ini file.
+-    // We only do it to make the demo applications a little more welcoming, but typically this isn't required.
+-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+-    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+-
+     // Main body of the Demo window starts here.
+     if (!ImGui::Begin("Dear ImGui Demo", p_open, window_flags))
+     {
