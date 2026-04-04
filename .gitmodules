@@ -1,0 +1,12 @@
+[submodule "dep/heavylib"]
+	path = dep/heavylib
+	url = https://github.com/dvddmg/heavylib.git
+[submodule "dep/dpf"]
+	path = dep/dpf
+	url = https://github.com/DISTRHO/DPF.git
+[submodule "dep/dpf-widgets"]
+	path = dep/dpf-widgets
+	url = https://github.com/DISTRHO/DPF-Widgets.git
+[submodule "dep/hvcc"]
+	path = dep/hvcc
+	url = https://github.com/Wasted-Audio/hvcc.git
