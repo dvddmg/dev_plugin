@@ -1,9 +1,6 @@
 [submodule "examples/wstd-3q"]
 	path = examples/wstd-3q
 	url = https://github.com/Wasted-Audio/wstd-3q.git
-[submodule "dep/heavylib"]
-	path = dep/heavylib
-	url = https://github.com/Wasted-Audio/heavylib.git
 [submodule "dep/hvcc"]
 	path = dep/hvcc
 	url = https://github.com/Wasted-Audio/hvcc.git
