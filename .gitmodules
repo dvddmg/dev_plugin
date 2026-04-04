@@ -1,9 +1,3 @@
-[submodule "dpf"]
-	path = dpf
-	url = https://github.com/DISTRHO/DPF.git
-[submodule "dpf-widgets"]
-	path = dpf-widgets
-	url = https://github.com/DISTRHO/DPF-Widgets.git
 [submodule "examples/wstd-3q"]
 	path = examples/wstd-3q
 	url = https://github.com/Wasted-Audio/wstd-3q.git
@@ -13,9 +7,9 @@
 [submodule "dep/hvcc"]
 	path = dep/hvcc
 	url = https://github.com/Wasted-Audio/hvcc.git
-[submodule "dep/DPF"]
+[submodule "dep/dpf"]
 	path = dep/DPF
 	url = https://github.com/DISTRHO/DPF.git
-[submodule "dep/DPF-Widgets"]
+[submodule "dep/dpf-widgets"]
 	path = dep/DPF-Widgets
 	url = https://github.com/DISTRHO/DPF-Widgets.git

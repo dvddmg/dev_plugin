@@ -1,0 +1,7 @@
+{
+    " p ": " pd ",
+    "cycle~": "osc~",
+    "tapin~": "delwrite~",
+    "tapout~": "delread~",
+    "pvar": "send"
+}

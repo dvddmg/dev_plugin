@@ -1,0 +1,4 @@
+#N canvas 666 802 450 300 12;
+#X obj 56 163 s network;
+#X obj 56 95 receive number @hv_param 0 127 0 float;
+#X connect 1 0 0 0;

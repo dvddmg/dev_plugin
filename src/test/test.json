@@ -1,0 +1,35 @@
+{
+    "name": "test",
+    "dpf": {
+        "dpf_path": "../../dep/",
+        "enable_ui": true,
+        "enable_modgui": false,
+        "ui_size": {
+            "width": 120,
+            "height": 520
+        },
+        "midi_input": 0,
+        "midi_output": 0,
+        "version": "1, 1, 1",        
+        "license": "GPL-3.0-or-later",
+        "plugin_formats": [
+            "vst2",
+            "vst3",
+            "clap"
+        ],
+        "vst3_info": "Fx|EQ",
+        "clap_info": [
+            "audio-effect",
+            "equalizer"
+        ],
+        "theme": {
+            "obj_corner_radius": 2.75,
+            "cnv_color": "#0000000",
+            "text_color": "#ffffff",
+            "io_color": "#626262",
+            "bg_color": "#191919",
+            "sel_color": "#ffacab",
+            "out_color": "#383838"
+        }
+    }
+}
