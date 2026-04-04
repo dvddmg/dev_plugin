@@ -13,3 +13,9 @@
 [submodule "dep/hvcc"]
 	path = dep/hvcc
 	url = https://github.com/Wasted-Audio/hvcc.git
+[submodule "dep/DPF"]
+	path = dep/DPF
+	url = https://github.com/DISTRHO/DPF.git
+[submodule "dep/DPF-Widgets"]
+	path = dep/DPF-Widgets
+	url = https://github.com/DISTRHO/DPF-Widgets.git
