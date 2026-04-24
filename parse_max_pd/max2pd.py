@@ -104,9 +104,9 @@ def obj_line(patch_data):
                 patcher_data.append(f'#X obj {pos} outlet{suffix};')
 
             elif cls == 'toggle':
-                patcher_data.append(f'#X obj {pos} tgl {size.split(' ')[0]} 0 {var_name} empty empty 0 -9 0 12 {bg_color} {ys_color} {no_color} 0 1;')
+                patcher_data.append(f'#X obj {pos} tgl {size.split(" ")[0]} 0 {var_name} empty empty 0 -9 0 12 {bg_color} {ys_color} {no_color} 0 1;')
             elif cls == 'button':
-                patcher_data.append(f'#X obj {pos} bng {size.split(' ')[0]} {blink_time} 50 0 {var_name} empty empty 0 -9 0 12 {bg_color} {bl_color} {ln_color};')
+                patcher_data.append(f'#X obj {pos} bng {size.split(" ")[0]} {blink_time} 50 0 {var_name} empty empty 0 -9 0 12 {bg_color} {bl_color} {ln_color};')
             elif cls == 'slider':
                 dir = i['box'].get('orientation')
                 if dir == 1:
