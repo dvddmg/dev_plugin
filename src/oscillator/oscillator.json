@@ -2,6 +2,7 @@
     "name": "oscillator",
     "dpf": {
         "enable_ui": true,
+        "dpf_path": "../../dep/",
         "ui_size": {
             "width": 200,
             "height": 200
