@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+# ── Patch hvcc template (dpf-widgets path fix) ─
+sed -i '' 's|../../{{dpf_path}}dpf-widgets|../{{dpf_path}}dpf-widgets|g' \
+    "$(dirname "$0")/dep/hvcc/hvcc/generators/c2dpf/templates/Makefile_plugin"
+
+
 # ── Prompt ────────────────────────────────────
 
 read -rp "Nome del plugin: " PLUGIN_NAME
@@ -112,8 +117,8 @@ cat > "${PLUGIN_DIR}/plugin.json" << JSON
         "maker": "${DEVELOPER}",
         "brand_id": "${BRAND_ID}",
         "unique_id": "${UNIQUE_ID}",
-        "homepage": "none",
-        "plugin_uri": "none",
+        "homepage": "https://www.davidebardi.com/",
+        "plugin_uri": "https://www.davidebardi.com/",
         "version": "${VERSION}",
         "license": "GPL-3.0-or-later",
         "midi_input": 0,

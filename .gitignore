@@ -4,6 +4,11 @@
 **/ir/
 **/plugin/
 **/c/
+**/Makefile
+
+src/**/README.md
 
 .DS_Store
-**/.DS_Store
+**/.DS_Store 
+
+**/venv/
