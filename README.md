@@ -93,3 +93,5 @@ Questi file sono sati scritti da Claude per velocizzare la prototipazione. Infat
 All'interno della cartella `/parse_max_pd` è presente un prototipo di parser per convertire patch max in pd. In via di sviluppo, non tutto è implementato, i due software hanno logiche molto diverse per alcune cose e al momento non sono gestiti casi specifici (es. non esiste il corssispettivo 1:1 di delay~ in pd, quindi è necessario fare delwrite~ e delread~ convertendo i campioni dati in max in millisecondi).
 
 Per provare il file è sufficiente chiamare lo script, con il venv attivo, passando come argomento il nome del file .maxpat che si vuole convertire.
+
+All'interno del file `table.json` è possibile aggiungere la conversione di oggetti per ampliare le possibilità del parser.
