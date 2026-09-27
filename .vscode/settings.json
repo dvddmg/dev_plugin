@@ -1,3 +1,12 @@
 {
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+
+    "editor.inlayHints.enabled": "on",
+
+    "C_Cpp.inlayHints.parameterNames.enabled": true,
+    "C_Cpp.inlayHints.parameterNames.suppressWhenArgumentContainsName": true,
+    "C_Cpp.inlayHints.parameterNames.hideLeadingUnderscores": true,
+    "C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
+    "C_Cpp.inlayHints.autoDeclarationTypes.showOnLeft": false,
+    "C_Cpp.inlayHints.referenceOperator.enabled": true
 }

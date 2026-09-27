@@ -110,6 +110,7 @@ FORMATS_INDENTED=$(echo "$FORMATS" | tr ',' '\n' | sed 's/^[[:space:]]*//' | awk
 cat > "${PLUGIN_DIR}/plugin.json" << JSON
 {
     "name": "${PLUGIN_SLUG}",
+    "nosimd": true,
     "dpf": {
         "dpf_path": "../../dep/",
         "enable_ui": true,

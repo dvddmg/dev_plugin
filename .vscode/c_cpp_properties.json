@@ -1,0 +1,36 @@
+{
+    "env": {
+        "dpfIncludes": [
+            "${workspaceFolder}/dep/dpf/distrho",
+            "${workspaceFolder}/dep/dpf/dgl",
+            "${workspaceFolder}/dep/dpf-widgets/generic",
+            "${workspaceFolder}/dep/dpf-widgets/opengl",
+            "${workspaceFolder}/dep/dpf-widgets/opengl/DearImGui"
+        ]
+    },
+    "configurations": [
+        {
+            "name": "orbita",
+            "includePath": [
+                "${dpfIncludes}",
+                "${workspaceFolder}/src/orbita/plugin/source"
+            ],
+            "defines": [ "DGL_OPENGL=1", "HAVE_OPENGL=1" ],
+            "compilerPath": "/usr/bin/clang++",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm64"
+        },
+        {
+            "name": "matrix_distance",
+            "includePath": [
+                "${dpfIncludes}",
+                "${workspaceFolder}/src/matrix_distance/plugin/source"
+            ],
+            "defines": [ "DGL_OPENGL=1", "HAVE_OPENGL=1" ],
+            "compilerPath": "/usr/bin/clang++",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ],
+    "version": 4
+}
