@@ -1,10 +1,6 @@
 # Develop plugin with HVCC e DPF in PureData
 
-Questa è una repository per studiare come sviluppare un plugin in PureData grazie al compilatore `hvcc` e al framework `dpf`.
-
-## Info 
-
-Ambiente di sviluppo di plugin partendo da patch PureData.
+Ambiente di lavoro per creare plugin audio partendo da patch Pure Data, grazie al compilatore `hvcc` e al framework `DPF`. Da un'unica patch si ottiene un plugin VST3 per macOS, Windows e Linux, con un'interfaccia ImGui personalizzabile.
 
 Link utili per studio:
 
@@ -13,11 +9,36 @@ Link utili per studio:
 - https://github.com/distrho/dpf
 - https://github.com/DISTRHO/DPF-Widgets.git
 
-Questi sono anche i submoudle presenti all'interno di questo progetto, in particolare dpf e dpf-widgets sono utilizzate come dipendenze per la compilazinoe dei plugin.
+Sono anche i submodule del progetto: `dpf` e `dpf-widgets` sono le dipendenze usate per compilare i plugin.
 
-## Create enviroment
+## Struttura
 
-HVCC è disponibile come libreria python, quindi è necessario creare un python enviroment e installare le dipendenze contenute in `requirements.txt`.
+```
+dev_plugin/
+├── new.sh               crea un nuovo plugin in src/ dal template
+├── build.sh             genera (hvcc) e compila un plugin, per una o più piattaforme
+├── config.sh            impostazioni comuni: produttore, brand_id, cartelle di installazione
+├── common/ui/           base comune delle interfacce (PluginUIBase.hpp, Palette.hpp)
+├── templates/plugin/    template usato da new.sh (patch, plugin.json, UI)
+├── docker/linux/        immagine Docker per compilare la versione Linux
+├── dep/                 submodule: dpf, dpf-widgets, hvcc
+└── src/<plugin>/
+    ├── <plugin>.pd      la patch (il DSP)
+    ├── plugin.json      metadati per hvcc/DPF
+    └── ui/HeavyDPF_<plugin>_UI.cpp   l'interfaccia del plugin
+```
+
+Tutto il resto dentro `src/<plugin>/` (`plugin/`, `build*/`, `bin/`, `c/`, `hv/`, `ir/`) è generato dal build e non va nel repository.
+
+## Preparazione
+
+Clona con i submodule (anche quelli interni di DPF):
+
+```bash
+git clone --recurse-submodules <url-del-repo>
+```
+
+hvcc è una libreria Python: crea l'ambiente e installa le dipendenze.
 
 ```bash
 python3 -m venv venv
@@ -25,68 +46,77 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Develop and build
+`build.sh` attiva il venv da solo se hvcc non è già disponibile.
 
-All'interno della cartella `./src` ci sono le cartelle per ogni plugin in cui troviamo principalmente questi due file necessari alla compilazione:
+Controlla i dati del produttore in `config.sh` (`MAKER`, `BRAND_ID`, `HOMEPAGE`…) e le cartelle di installazione dei VST3.
 
-- *.pd = patch di PureData
-- *.json = Metadata per la compilazione
-
-Il file json deve avere questo contenuto base
-
-```json
-{
-    "name": PLUGIN_NAME,
-    "dpf": {
-        "dpf_path": "../../dep/",
-        "enable_ui": true,
-        "description": DESCRIPTION,
-        "maker": DEVELOPER,
-        "brand_id": BRAND_ID,
-        "unique_id": UNIQUE_ID,
-        "homepage": "https://www.davidebardi.com/",
-        "plugin_uri": "https://www.davidebardi.com/",
-        "version": VERSION,
-        "license": "GPL-3.0-or-later",
-        "midi_input": 0,
-        "midi_output": 0,
-        "plugin_formats": [
-            PLUGIN_FORMAT
-        ]
-    }
-}
-```
-
-Le variabili in capslock devono essere sotituire con le proprie. Di seguito le descrizioni prese dalla documentazione.
-
-- **name**: Name of plugin
-
-- **brand_id**: A 4-character symbol that identifies a brand or manufacturer, with at least one non-lower case character. Plugins from the same brand should use the same symbol. Required when using AU.
-
-- **unique_id**: A 4-character symbol which identifies a plugin. It must be unique within at least a set of plugins from the brand. Required when using AU
-
-- **version**: Version of plugin with this format "1, 1, 1"
-
-- **plugin_formats**: list of format, avilable lv2_sep, vst2, vst3, au, clap, jack
-
-Maggiori dettagli a questo [link](https://wasted-audio.github.io/hvcc/generators/dpf/)
+## Nuovo plugin
 
 ```bash
-hvcc nome_file.pd -g dpf -m nome_file.json
-make
+./new.sh
 ```
 
-Anche qui per il comando di compilazione è disponibile maggior documentazione a quessto [link](https://wasted-audio.github.io/hvcc/)
+Chiede nome, descrizione, `unique_id` (4 caratteri, diverso per ogni plugin) e formati. Crea `src/<nome>/` con:
 
-## Automatic
+- una patch stereo di partenza con un parametro `gain`;
+- `plugin.json` già valido, con i dati di `config.sh`;
+- un'interfaccia che mostra automaticamente un controllo per ogni parametro della patch.
 
-Per semmplificare i comandi sono disponibili due script per generare la cartella di lavoro all'interno di `/src` e per la compilazione.
+I parametri si definiscono nella patch con `[r nome @hv_param min max default]` (tipi opzionali: `bool`, `int`, `log`, `dB`…). Per i menu a scelta si aggiunge `"enumerators"` in `plugin.json`.
 
-Nello specifico con lo script `new.sh` è possibile creare una cartella con all'interno un file .pd di partenza e il suo file .json per i metadati. Le informazioni richieste da questo script vengono messe all'interno del file di metadati.
+## Build
 
-Succesivamente allo sviluppo della patch di Pd è possibile compilare l'oggetto della directory principale del progetto con lo script `build.sh` seguito dal nome del plugin che vogliamo compilare all'interno della cartella src.
+```bash
+./build.sh <plugin> [opzioni]
+```
 
-Questi file sono sati scritti da Claude per velocizzare la prototipazione. Infatti il file .json è possible presonalizzarlo con le informazioni che lo script `new.sh` non richiede.
+| Opzione | Cosa fa |
+|---|---|
+| *(nessuna)* o `--native` | compila per il sistema su cui stai lavorando |
+| `--universal` | macOS universal: Apple Silicon + Intel (solo da Mac) |
+| `--win` | Windows 64 bit: da Mac con MinGW, nativo su Windows |
+| `--linux` | Linux 64 bit: da Mac con Docker, nativo su Linux |
+| `--all` | `--universal` + `--win` + `--linux`: un solo bundle per i tre sistemi |
+| `--install` | copia il bundle nella cartella VST3 indicata in `config.sh` |
+| `--clean` | cancella `build*` e `bin` del plugin prima di compilare |
+
+Esempi:
+
+```bash
+./build.sh orbita --install          # sviluppo: solo Mac, e installa
+./build.sh orbita --all --install    # distribuzione: bundle per Mac, Windows e Linux
+```
+
+Cosa fa, in ordine:
+
+1. rigenera i sorgenti con hvcc (cancellando quelli vecchi);
+2. crea `HeavyParams.hpp`: nomi, indici, default e intervalli dei parametri per la UI;
+3. copia `common/ui/` e `src/<plugin>/ui/` nei sorgenti;
+4. compila per le piattaforme richieste: ognuna aggiunge la sua cartella in `bin/<plugin>.vst3/Contents/`;
+5. aggiorna la configurazione IntelliSense di VS Code (`.vscode/c_cpp_properties.json`, una configurazione per plugin);
+6. se richiesto, installa.
+
+### Prerequisiti per le altre piattaforme (da Mac)
+
+- **Windows**: `brew install mingw-w64`
+- **Linux**: Docker Desktop aperto (su Apple Silicon attiva "Use Rosetta for x86_64/amd64 emulation"). L'immagine `dpf-linux` viene creata al primo build da `docker/linux/Dockerfile`.
+
+### Compilare direttamente su Windows
+
+Serve MSYS2 (shell "UCRT64") con `git make mingw-w64-ucrt-x86_64-gcc` e il Python ufficiale di Windows; il venv si attiva con `source venv/Scripts/activate`. Il file `.gitattributes` mantiene i fine riga Unix, necessari agli script.
+
+## Interfaccia
+
+Ogni UI deriva da `PluginUIBase` (`common/ui/PluginUIBase.hpp`) e implementa solo `drawContent()`. La base offre:
+
+- `fParams[paramnome]`: valore di ogni parametro; `fZ`: scala di disegno (moltiplica ogni misura per `fZ`);
+- finestra ridimensionabile con zoom, tema e palette comune (`Palette.hpp`);
+- controlli collegati ai parametri, con automazione e doppio clic per il default: `knobParam`, `toggleButton`, `choiceButton`, `cycleButton`, `toggleCell`;
+- elementi di layout: `drawTitle`, `sectionHeader`, `drawGenericParameters`.
+
+Le modifiche alla parte comune vanno fatte in `common/ui/`, mai nelle copie dentro `plugin/source/`. `src/orbita/ui/` è un esempio completo di interfaccia personalizzata.
+
+Nota Heavy: un bang sull'inlet sinistro di `[+] [*] [-] …` non ricalcola il risultato come in Pd. Per "ricalcolare con i valori memorizzati" manda il bang a un `[f]` messo prima della catena.
 
 ## Special guest
 

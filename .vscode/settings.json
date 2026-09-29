@@ -1,5 +1,7 @@
 {
     "cmake.ignoreCMakeListsMissing": true,
+    
+    "makefile.configureOnOpen": false,
 
     "editor.inlayHints.enabled": "on",
 

@@ -1,0 +1,10 @@
+# Fine riga Unix per i file di testo del progetto, anche su Windows
+# (gli script bash si rompono con \r\n)
+* text=auto
+*.sh   text eol=lf
+*.pd   text eol=lf
+*.json text eol=lf
+*.cpp  text eol=lf
+*.hpp  text eol=lf
+*.h    text eol=lf
+Dockerfile text eol=lf

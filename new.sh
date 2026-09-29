@@ -1,146 +1,111 @@
 #!/bin/bash
 
-# ──────────────────────────────────────────────
-#  Plugin Scaffold Generator (DPF/hvcc)
-#  Creates a plugin dev folder inside ./src
-# ──────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────
+#  new.sh — crea un nuovo plugin in src/<nome> partendo da templates/plugin
+#
+#  Uso:  ./new.sh      (fa qualche domanda)
+#
+#  Crea:
+#    src/<nome>/<nome>.pd                    patch di partenza (stereo, parametro "gain")
+#    src/<nome>/plugin.json                  metadati per hvcc/DPF (dati da config.sh)
+#    src/<nome>/ui/HeavyDPF_<nome>_UI.cpp    interfaccia basata su common/ui/PluginUIBase.hpp
+# ──────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-# ── Patch hvcc template (dpf-widgets path fix) ─
-sed -i '' 's|../../{{dpf_path}}dpf-widgets|../{{dpf_path}}dpf-widgets|g' \
-    "$(dirname "$0")/dep/hvcc/hvcc/generators/c2dpf/templates/Makefile_plugin"
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+source "$ROOT/config.sh"
+TEMPLATE="$ROOT/templates/plugin"
 
+die() { echo "Errore: $*" >&2; exit 1; }
 
-# ── Prompt ────────────────────────────────────
+# ── Domande ──────────────────────────────────────────────────────
 
-read -rp "Nome del plugin: " PLUGIN_NAME
+read -rp "Nome del plugin (es. Orbita): " TITLE
+[[ -n "$TITLE" ]] || die "il nome non può essere vuoto."
 
-if [[ -z "$PLUGIN_NAME" ]]; then
-    echo "Errore: il nome del plugin non può essere vuoto."
-    exit 1
+# Nome tecnico: minuscolo, spazi e trattini → underscore, solo a-z 0-9 _
+SLUG=$(printf '%s' "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' -' '__' | tr -cd 'a-z0-9_')
+[[ "$SLUG" =~ ^[a-z] ]] || die "il nome deve iniziare con una lettera."
+
+PLUGIN_DIR="$ROOT/src/$SLUG"
+[[ ! -e "$PLUGIN_DIR" ]] || die "src/$SLUG esiste già."
+
+read -rp "Descrizione breve: " DESCRIPTION
+DESCRIPTION="${DESCRIPTION:-$TITLE}"
+DESCRIPTION="${DESCRIPTION//\"/\'}"   # niente virgolette doppie: finisce in JSON e in C++
+
+# unique_id: 4 caratteri, proposto dal nome (prima lettera maiuscola)
+SUGGESTED=$(printf '%s' "$TITLE" | tr -cd '[:alnum:]' | cut -c1-4)
+while [[ ${#SUGGESTED} -lt 4 ]]; do
+    SUGGESTED="${SUGGESTED}x"
+done
+SUGGESTED="$(printf '%s' "${SUGGESTED:0:1}" | tr '[:lower:]' '[:upper:]')${SUGGESTED:1}"
+
+read -rp "unique_id, esattamente 4 caratteri [$SUGGESTED]: " UNIQUE_ID
+UNIQUE_ID="${UNIQUE_ID:-$SUGGESTED}"
+[[ ${#UNIQUE_ID} -eq 4 ]] || die "unique_id deve avere esattamente 4 caratteri."
+if grep -qs "\"unique_id\": \"$UNIQUE_ID\"" "$ROOT"/src/*/plugin.json; then
+    die "unique_id '$UNIQUE_ID' è già usato da un altro plugin."
 fi
 
-# ── Formato plugin (multi-select) ─────────────
-
-echo "Formati del plugin (separati da virgola, es: 1,3):"
+echo "Formati (separati da virgola, invio = solo vst3):"
 echo "  1) vst3"
-echo "  2) au"
+echo "  2) clap"
 echo "  3) lv2"
-echo "  4) clap"
-read -rp "Scegli [1-4]: " FORMAT_INPUT
+echo "  4) au (solo macOS)"
+read -rp "Scegli [1]: " FORMAT_INPUT
+FORMAT_INPUT="${FORMAT_INPUT:-1}"
 
 FORMATS=""
 IFS=',' read -ra CHOICES <<< "$FORMAT_INPUT"
 for choice in "${CHOICES[@]}"; do
-    choice=$(echo "$choice" | tr -d ' ')
-    case "$choice" in
-        1) FORMATS="${FORMATS}\"vst3\"," ;;
-        2) FORMATS="${FORMATS}\"au\"," ;;
-        3) FORMATS="${FORMATS}\"lv2\"," ;;
-        4) FORMATS="${FORMATS}\"clap\"," ;;
-        *) echo "Scelta non valida: $choice"; exit 1 ;;
+    case "${choice// /}" in
+        1) format="vst3" ;;
+        2) format="clap" ;;
+        3) format="lv2_sep" ;;
+        4) format="au" ;;
+        *) die "scelta non valida: $choice" ;;
     esac
+    FORMATS="${FORMATS:+$FORMATS, }\"$format\""
 done
+FORMATS="[$FORMATS]"
 
-# Rimuovi virgola finale
-FORMATS="${FORMATS%,}"
+# ── Copia del template ───────────────────────────────────────────
 
-if [[ -z "$FORMATS" ]]; then
-    echo "Errore: seleziona almeno un formato."
-    exit 1
-fi
+# Protegge i caratteri speciali di sed (\ | &) in un valore da sostituire
+esc() { printf '%s' "$1" | sed -e 's/[\\|&]/\\&/g'; }
 
-# ── Descrizione ───────────────────────────────
-
-read -rp "Descrizione breve: " DESCRIPTION
-DESCRIPTION="${DESCRIPTION:-no description}"
-
-# ── Variabili derivate ────────────────────────
-
-# Slug: lowercase, spazi → underscore, solo alfanumerici e _
-PLUGIN_SLUG=$(echo "$PLUGIN_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr -cd 'a-z0-9_')
-
-# Developer: nome utente di sistema
-DEVELOPER=$(whoami)
-
-# Unique ID: primi 4 char alfanumerici del nome, camelCase-style
-UNIQUE_ID=$(echo "$PLUGIN_NAME" | tr -cd '[:alnum:]' | cut -c1-4)
-if [[ ${#UNIQUE_ID} -ge 1 ]]; then
-    UNIQUE_ID="$(echo "${UNIQUE_ID:0:1}" | tr '[:upper:]' '[:lower:]')${UNIQUE_ID:1}"
-fi
-while [[ ${#UNIQUE_ID} -lt 4 ]]; do
-    UNIQUE_ID="${UNIQUE_ID}x"
-done
-
-# Brand ID: primi 4 char alfanumerici del developer, capitalizzato
-BRAND_ID=$(echo "$DEVELOPER" | tr -cd '[:alnum:]' | cut -c1-4)
-if [[ ${#BRAND_ID} -ge 1 ]]; then
-    BRAND_ID="$(echo "${BRAND_ID:0:1}" | tr '[:lower:]' '[:upper:]')$(echo "${BRAND_ID:1}" | tr '[:upper:]' '[:lower:]')"
-fi
-while [[ ${#BRAND_ID} -lt 4 ]]; do
-    BRAND_ID="${BRAND_ID}x"
-done
-
-VERSION="1, 1, 1"
-
-# ── Creazione cartella ────────────────────────
-
-PLUGIN_DIR="./src/${PLUGIN_SLUG}"
-
-if [[ -d "$PLUGIN_DIR" ]]; then
-    echo "Errore: la cartella '$PLUGIN_DIR' esiste già."
-    exit 1
-fi
-
-mkdir -p "$PLUGIN_DIR"
-
-# ── File .pd vuoto ────────────────────────────
-
-cat > "${PLUGIN_DIR}/${PLUGIN_SLUG}.pd" << 'PD'
-#N canvas 0 0 450 300 12;
-PD
-
-# ── File JSON metadata ───────────────────────
-
-# Costruisci array JSON con indentazione corretta
-# Converte "vst3","au" → linee indentate con virgole (tranne l'ultima)
-FORMATS_INDENTED=$(echo "$FORMATS" | tr ',' '\n' | sed 's/^[[:space:]]*//' | awk '{lines[NR]=$0} END {for(i=1;i<NR;i++) print "            " lines[i] ","; print "            " lines[NR]}')
-
-cat > "${PLUGIN_DIR}/plugin.json" << JSON
-{
-    "name": "${PLUGIN_SLUG}",
-    "nosimd": true,
-    "dpf": {
-        "dpf_path": "../../dep/",
-        "enable_ui": true,
-        "description": "${DESCRIPTION}",
-        "maker": "${DEVELOPER}",
-        "brand_id": "${BRAND_ID}",
-        "unique_id": "${UNIQUE_ID}",
-        "homepage": "https://www.davidebardi.com/",
-        "plugin_uri": "https://www.davidebardi.com/",
-        "version": "${VERSION}",
-        "license": "GPL-3.0-or-later",
-        "midi_input": 0,
-        "midi_output": 0,
-        "plugin_formats": [
-${FORMATS_INDENTED}
-        ]
-    }
+# Copia un file del template sostituendo i segnaposto @CHIAVE@
+fill() {
+    sed -e "s|@NAME@|$(esc "$SLUG")|g" \
+        -e "s|@TITLE@|$(esc "$TITLE")|g" \
+        -e "s|@DESCRIPTION@|$(esc "$DESCRIPTION")|g" \
+        -e "s|@MAKER@|$(esc "$MAKER")|g" \
+        -e "s|@BRAND_ID@|$(esc "$BRAND_ID")|g" \
+        -e "s|@UNIQUE_ID@|$(esc "$UNIQUE_ID")|g" \
+        -e "s|@HOMEPAGE@|$(esc "$HOMEPAGE")|g" \
+        -e "s|@URI@|$(esc "$URI_BASE/$SLUG")|g" \
+        -e "s|@LICENSE@|$(esc "$LICENSE")|g" \
+        -e "s|@FORMATS@|$(esc "$FORMATS")|g" \
+        "$1" > "$2"
 }
-JSON
 
-# ── Output ────────────────────────────────────
+mkdir -p "$PLUGIN_DIR/ui"
+fill "$TEMPLATE/plugin.pd"       "$PLUGIN_DIR/$SLUG.pd"
+fill "$TEMPLATE/plugin.json"     "$PLUGIN_DIR/plugin.json"
+fill "$TEMPLATE/ui/PluginUI.cpp" "$PLUGIN_DIR/ui/HeavyDPF_${SLUG}_UI.cpp"
+
+# ── Riepilogo ────────────────────────────────────────────────────
 
 echo ""
-echo "Plugin '${PLUGIN_NAME}' creato in ${PLUGIN_DIR}/"
+echo "Plugin '$TITLE' creato in src/$SLUG/"
 echo ""
-echo "  ${PLUGIN_SLUG}.pd       (canvas vuoto)"
-echo "  plugin.json"
-echo "    maker     : ${DEVELOPER}"
-echo "    brand_id  : ${BRAND_ID}"
-echo "    unique_id : ${UNIQUE_ID}"
-echo "    version   : ${VERSION}"
-echo "    formats   : [${FORMATS}]"
+echo "  $SLUG.pd                     patch di partenza"
+echo "  plugin.json                  unique_id: $UNIQUE_ID   brand_id: $BRAND_ID   formati: $FORMATS"
+echo "  ui/HeavyDPF_${SLUG}_UI.cpp   interfaccia"
+echo ""
+echo "Prossimi passi:"
+echo "  1. modifica la patch src/$SLUG/$SLUG.pd"
+echo "  2. ./build.sh $SLUG --install"
 echo ""
