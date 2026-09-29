@@ -1,5 +1,9 @@
 **/build/
 **/build-*/
+
+# Release: lista privata dei plugin e pacchetti generati
+release.conf
+dist/
 **/build-**/
 **/bin/
 **/hv/

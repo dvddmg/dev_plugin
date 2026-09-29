@@ -1,0 +1,155 @@
+# ──────────────────────────────────────────────────────────────────
+#  Release: compila i plugin richiesti per macOS, Windows e Linux,
+#  li raccoglie in un unico zip e pubblica una release su GitHub.
+#
+#  Si avvia da ./release.sh (oppure da GitHub → Actions → Release → Run workflow).
+#  Le note della versione vanno in release/notes/v<versione>.md, già committate.
+# ──────────────────────────────────────────────────────────────────
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versione, es. 1.0.0 (note in release/notes/v<versione>.md)"
+        required: true
+      plugins:
+        description: "Plugin da includere: cartelle di src/ separate da spazio"
+        required: true
+      name:
+        description: "Nome del pacchetto: lo zip sarà <nome>-v<versione>.zip"
+        required: true
+        default: "plugins"
+
+permissions:
+  contents: write   # serve per creare tag e release
+
+# Gli input passano da variabili d'ambiente, mai scritti direttamente negli script
+env:
+  VERSION: ${{ inputs.version }}
+  PLUGINS: ${{ inputs.plugins }}
+  NAME: ${{ inputs.name }}
+
+jobs:
+  # ── Controlli veloci, prima di compilare ───────────────────────
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Controllo di versione, note e plugin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::versione non valida: $VERSION (formato X.Y.Z)"; exit 1; }
+          [[ "$NAME" =~ ^[A-Za-z0-9_.-]+$ ]]         || { echo "::error::nome del pacchetto non valido: $NAME"; exit 1; }
+          [[ -f "release/notes/v$VERSION.md" ]]      || { echo "::error::mancano le note: release/notes/v$VERSION.md"; exit 1; }
+          for p in $PLUGINS; do
+            [[ "$p" =~ ^[a-z0-9_]+$ ]] || { echo "::error::nome di plugin non valido: $p"; exit 1; }
+            [[ -f "src/$p/$p.pd" ]]    || { echo "::error::plugin inesistente: src/$p/$p.pd"; exit 1; }
+          done
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            echo "::error::la release v$VERSION esiste già"; exit 1
+          fi
+
+  # ── Compilazione: macOS sul runner Mac, Linux e Windows sul runner Linux ──
+  build:
+    needs: check
+    strategy:
+      matrix:
+        include:
+          - platform: macos
+            os: macos-14
+            targets: --universal              # Apple Silicon + Intel
+          - platform: linux-windows
+            os: ubuntu-22.04                  # glibc 2.35, come l'immagine Docker locale
+            targets: --native --win           # Linux nativo + Windows con MinGW
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Submodule necessari (DPF e DPF-Widgets)
+        run: git submodule update --init --recursive dep/dpf dep/dpf-widgets
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: hvcc
+        run: pip install -r requirements.txt
+
+      - name: Strumenti Linux e MinGW
+        if: matrix.platform == 'linux-windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config \
+              libx11-dev libxext-dev libxrandr-dev libxcursor-dev libgl1-mesa-dev libdbus-1-dev \
+              g++-mingw-w64-x86-64
+          # MinGW con thread POSIX, come quello di Homebrew usato in locale
+          sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+          sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+
+      - name: Build
+        run: |
+          for p in $PLUGINS; do
+            ./build.sh "$p" ${{ matrix.targets }} --clean
+          done
+
+      - name: Raccolta dei bundle
+        run: |
+          mkdir -p staging
+          for p in $PLUGINS; do
+            cp -R "src/$p/bin/$p.vst3" staging/
+          done
+          # tar conserva i permessi dei file (gli artifact di GitHub no)
+          tar -czf "vst3-${{ matrix.platform }}.tar.gz" -C staging .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vst3-${{ matrix.platform }}
+          path: vst3-${{ matrix.platform }}.tar.gz
+          retention-days: 3
+
+  # ── Zip unico e release su GitHub ──────────────────────────────
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vst3-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Pacchetto zip
+        run: |
+          PKG="${NAME}-v${VERSION}"
+          mkdir -p "dist/$PKG"
+
+          # I bundle di ogni piattaforma si sovrappongono: ognuno aggiunge la sua cartella in Contents/
+          for t in artifacts/*.tar.gz; do
+            tar -xzf "$t" -C "dist/$PKG"
+          done
+
+          cp release/README.txt "dist/$PKG/README.txt"
+          cp "release/notes/v$VERSION.md" "dist/$PKG/NOTES.md"
+          if [[ -f LICENSE ]]; then
+            cp LICENSE "dist/$PKG/"
+          fi
+
+          echo "Contenuto del pacchetto:"
+          find "dist/$PKG" -maxdepth 4 | sort
+
+          (cd dist && zip -r -y "$PKG.zip" "$PKG")
+          echo "PKG=$PKG" >> "$GITHUB_ENV"
+
+      - name: Release su GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" "dist/$PKG.zip" \
+              --title "$NAME v$VERSION" \
+              --notes-file "release/notes/v$VERSION.md" \
+              --target "$GITHUB_SHA"

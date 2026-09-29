@@ -35,7 +35,7 @@ Tutto il resto dentro `src/<plugin>/` (`plugin/`, `build*/`, `bin/`, `c/`, `hv/`
 Clona con i submodule (anche quelli interni di DPF):
 
 ```bash
-git clone --recurse-submodules <url-del-repo>
+git clone --recurse-submodules https://github.com/dvddmg/dev_plugin.git
 ```
 
 hvcc è una libreria Python: crea l'ambiente e installa le dipendenze.
@@ -117,6 +117,21 @@ Ogni UI deriva da `PluginUIBase` (`common/ui/PluginUIBase.hpp`) e implementa sol
 Le modifiche alla parte comune vanno fatte in `common/ui/`, mai nelle copie dentro `plugin/source/`. `src/orbita/ui/` è un esempio completo di interfaccia personalizzata.
 
 Nota Heavy: un bang sull'inlet sinistro di `[+] [*] [-] …` non ricalcola il risultato come in Pd. Per "ricalcolare con i valori memorizzati" manda il bang a un `[f]` messo prima della catena.
+
+## Release
+
+Le release si compilano su GitHub Actions (macOS, Windows, Linux) e vengono pubblicate nella scheda *Releases* come un unico zip.
+
+1. Copia `release.conf.example` in `release.conf` (privato, escluso da git) e scegli nome del pacchetto e plugin.
+2. Scrivi le note della versione in `release/notes/v<versione>.md`, partendo da `release/notes/TEMPLATE.md`.
+3. Fai commit e push.
+4. Avvia:
+
+```bash
+./release.sh 1.0.0
+```
+
+Lo script controlla che tutto sia pronto e avvia il workflow `.github/workflows/release.yml`, che compila i plugin, crea `<nome>-v<versione>.zip` (bundle VST3, `README.txt` con le istruzioni di installazione, note, `LICENSE` se presente) e pubblica la release con il tag `v<versione>`. Per seguirne l'avanzamento: `gh run watch`.
 
 ## Special guest
 

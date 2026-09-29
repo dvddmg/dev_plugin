@@ -1,0 +1,12 @@
+# ──────────────────────────────────────────────────────────────────
+#  release.conf — plugin da includere nella prossima release
+#
+#  Copia questo file in release.conf e modificalo: release.conf è privato
+#  (escluso da git) e viene letto solo da ./release.sh.
+# ──────────────────────────────────────────────────────────────────
+
+# Nome del pacchetto: lo zip sarà <RELEASE_NAME>-v<versione>.zip
+RELEASE_NAME="nome-plugins"
+
+# Plugin da includere: nomi delle cartelle in src/, separati da spazio
+RELEASE_PLUGINS="orbita"
