@@ -46,7 +46,9 @@ git ls-files --error-unmatch "$NOTES" > /dev/null 2>&1 || die "$NOTES non è nel
 
 # ── Il repository su GitHub è aggiornato? ────────────────────────
 
-git diff --quiet && git diff --cached --quiet \
+# --ignore-submodules=dirty: le modifiche DENTRO un submodule (es. dep/hvcc) non arrivano
+# comunque a GitHub; conta solo se cambia il commit del submodule.
+git diff --quiet --ignore-submodules=dirty && git diff --cached --quiet --ignore-submodules=dirty \
     || die "ci sono modifiche non committate: GitHub compilerebbe la versione precedente."
 
 git fetch --quiet
