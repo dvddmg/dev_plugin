@@ -38,6 +38,18 @@ DSP_HPP="${SRC_DIR}/HeavyDPF_${PLUGIN_NAME}.hpp"
     echo "};"
 } > "${SRC_DIR}/HeavyParams.hpp"
 
+# ── 1b-bis. DearImGui compilato dentro la cartella del plugin ─────
+# Il Makefile di hvcc compila ../../../../dep/.../DearImGui.cpp: con quei "../"
+# l'oggetto finisce FUORI da build/ (in ~/Desktop/dep) ed è lo stesso per
+# macOS, Windows e Linux. Lo sostituiamo con un file locale che lo include.
+MAKEFILE="${SRC_DIR}/Makefile"
+if grep -q "dpf-widgets/opengl/DearImGui.cpp" "$MAKEFILE"; then
+    mkdir -p "${SRC_DIR}/widgets"
+    echo '#include "DearImGui.cpp"' > "${SRC_DIR}/widgets/DearImGui_build.cpp"
+    sed -i.bak 's|^FILES_UI += .*dpf-widgets/opengl/DearImGui\.cpp$|FILES_UI += widgets/DearImGui_build.cpp|' "$MAKEFILE"
+    rm -f "${MAKEFILE}.bak"
+fi
+
 # ── 1c. UI custom (se presente) ───────────────
 if [[ -d "${PLUGIN_DIR}/ui" ]]; then
     echo ">> UI custom: copio ${PLUGIN_DIR}/ui/ in plugin/source/"
@@ -62,12 +74,4 @@ if [[ -n "$OUTPUT_DIR" ]]; then
         cp -R "$bundle" "$OUTPUT_DIR/"
         echo ">> Installato: $OUTPUT_DIR/$name"
     done
-fi
-
-# ── 3. Cleanup cartella dep 1 livello sopra ────────────────────────────────
-
-if [[ -d "$(pwd)/../dep/dpf-widgets" ]]; then
-    echo ">> Cleanup: rimossa cartella dpf-widgets spuria..."
-    rm -rf "$(pwd)/../dep/dpf-widgets"
-    rmdir "$(pwd)/../dep" 2>/dev/null || true
 fi
