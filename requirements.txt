@@ -1,6 +1,6 @@
 annotated-types==0.7.0
 Arpeggio==2.0.3
-hvcc==0.15.0
+hvcc==0.16.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
 pydantic==2.12.5
