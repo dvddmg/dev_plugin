@@ -9,7 +9,7 @@ START_NAMESPACE_DISTRHO
 
 // Nome mostrato in alto a sinistra
 static const char* const kTitle    = "ORBITA";
-static const char* const kSubtitle = "spat · 8 ch";
+static const char* const kSubtitle = "spat · 4-8 ch";
 
 // Misure specifiche di questo layout (pixel logici, da moltiplicare per fZ)
 static constexpr float kCircleR = 170.0f;  // raggio del cerchio degli altoparlanti
@@ -57,6 +57,18 @@ static float spreadGain(float x, float spread, float offset, float curve)
 class OrbitaUI : public PluginUIBase
 {
 protected:
+    // Numero di altoparlanti attivi (4..8), dal parametro "speakers"
+    int speakerCount() const
+    {
+        return std::max(4, std::min(8, static_cast<int>(fParams[paramspeakers] + 0.5f)));
+    }
+
+    // Dispone i primi n altoparlanti in modo equidistante, con il fronte tra il primo e l'ultimo
+    void distributeSpeakers(int n)
+    {
+        for (int i = 0; i < n; ++i)
+            setParamFromClick(kSpkParams[i], wrap180(-180.0f / n + i * 360.0f / n));
+    }
     // ------------------------------------------------------------------
     // Layout della finestra
     //
@@ -109,7 +121,7 @@ protected:
 
         const float x0 = ImGui::GetCursorPosX();
 
-        sectionHeader("MODE", width);
+        sectionHeader("SOURCE", width);
 
         // Tre pulsanti che riempiono la larghezza della colonna
         const float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -146,7 +158,7 @@ protected:
         }
         else                            // manuale
         {
-            knobParam("posizione", parammanual_pos, -180.0f, 180.0f, "%.0f°");
+            knobParam("position", parammanual_pos, -180.0f, 180.0f, "%.0f°");
         }
     }
 
@@ -180,7 +192,9 @@ protected:
         const float dotR = 9.0f * fZ;
         const float grabR = 13.0f * fZ;
 
-        for (int i = 0; i < 8; ++i)
+        const int n = speakerCount();
+
+        for (int i = 0; i < n; ++i)
         {
             const uint32_t index = kSpkParams[i];
             const ImVec2 p = toXY(compress * fParams[index] + rotation, r);
@@ -248,9 +262,11 @@ protected:
     }
 
     // Colonna destra, sotto la modalità: rotazione e compress, poi gli 8 altoparlanti
+        // Colonna destra, sotto la modalità: rotazione e compress, poi numero e posizioni degli altoparlanti
     void drawFieldSection(float width)
     {
         const float x0 = ImGui::GetCursorPosX();
+        const int n = speakerCount();
 
         sectionHeader("FIELD", width);
         knobParam("rotation", paramrotazione, -180.0f, 180.0f, "%.0f°");
@@ -260,8 +276,25 @@ protected:
         ImGui::SetCursorPosX(x0);
         sectionHeader("SPEAKERS", width);
 
+        // Numero di altoparlanti: un pulsante per ogni valore da 4 a 8, poi "distribute"
+        static const char* const countLabels[] = { "4", "5", "6", "7", "8" };
+        const float spacing = ImGui::GetStyle().ItemSpacing.x;
+        const float distW   = kButtonW * fZ;
+        const float bw      = (width - distW - 5.0f * spacing) / 5.0f;
+
+        for (int k = 0; k < 5; ++k)
+        {
+            if (k > 0)
+                ImGui::SameLine();
+            choiceButton(countLabels[k], paramspeakers, k + 4, bw);
+        }
+        ImGui::SameLine();
+        if (styledButton("distribute", false, distW))
+            distributeSpeakers(n);
+
+        // Un knob per ogni altoparlante attivo, 4 per riga
         char label[16];
-        for (int i = 0; i < 8; ++i)
+        for (int i = 0; i < n; ++i)
         {
             if (i % 4 == 0)
                 ImGui::SetCursorPosX(x0);   // inizio riga
@@ -272,7 +305,6 @@ protected:
             knobParam(label, kSpkParams[i], -180.0f, 180.0f, "%.1f°");
         }
     }
-
     // Sotto il cerchio: la curva di trasferimento dello spread
     void drawSpreadCurve(float w, float h)
     {

@@ -1,0 +1,24 @@
+{
+    "name": "diffuser",
+    "nosimd": true,
+    "dpf": {
+        "dpf_path": "../../dep/",
+        "enable_ui": true,
+        "ui_size": {"width": 480, "height": 450},
+        "description": "stereo to multichannel diffusion",
+        "maker": "davide",
+        "brand_id": "Dvmg",
+        "unique_id": "Diff",
+        "homepage": "https://www.davidebardi.com/",
+        "plugin_uri": "https://www.davidebardi.com/plugins/diffuser",
+        "version": "1, 0, 0",
+        "license": "GPL-3.0-or-later",
+        "midi_input": 0,
+        "midi_output": 0,
+        "plugin_formats": ["vst3"],
+        "enumerators": {
+            "speakers": ["4", "6", "8"]
+        }
+
+    }
+}

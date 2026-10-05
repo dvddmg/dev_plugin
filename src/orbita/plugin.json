@@ -4,7 +4,7 @@
     "dpf": {
         "dpf_path": "../../dep/",
         "enable_ui": true,
-        "description": "8 channels spatializer",
+        "description": "4-8 channels spatializer",
         "maker": "davide",
         "brand_id": "Dvmg",
         "unique_id": "Orb8",

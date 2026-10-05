@@ -12,16 +12,16 @@
     },
     "configurations": [
         {
-            "name": "diffusione_trasparente",
-            "includePath": [ "${dpfIncludes}", "${workspaceFolder}/src/diffusione_trasparente/plugin/source" ],
+            "name": "diffuser",
+            "includePath": [ "${dpfIncludes}", "${workspaceFolder}/src/diffuser/plugin/source" ],
             "defines": [ "DGL_OPENGL=1", "HAVE_OPENGL=1" ],
             "compilerPath": "/usr/bin/clang++",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64"
         },
         {
-            "name": "matrix_distance",
-            "includePath": [ "${dpfIncludes}", "${workspaceFolder}/src/matrix_distance/plugin/source" ],
+            "name": "lontananza",
+            "includePath": [ "${dpfIncludes}", "${workspaceFolder}/src/lontananza/plugin/source" ],
             "defines": [ "DGL_OPENGL=1", "HAVE_OPENGL=1" ],
             "compilerPath": "/usr/bin/clang++",
             "cppStandard": "c++17",

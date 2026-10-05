@@ -25,6 +25,7 @@
 #include <cfloat>
 #include <cstdio>
 #include <algorithm>
+#include <cstdlib>
 
 START_NAMESPACE_DISTRHO
 
@@ -177,13 +178,69 @@ protected:
         ImGui::PopStyleColor(2);
         handleGesture(index, changed);   // subito dopo il knob: IsItem* si riferiscono a lui
 
-        char value[32];
-        std::snprintf(value, sizeof(value), format, fParams[index]);
-        centeredText(value, x0, cell);
+        valueField(index, min, max, format, x0, cell);
 
         ImGui::EndGroup();
     }
 
+        
+    // Valore di un parametro come testo. Un clic lo trasforma in un campo in cui digitare
+    // il numero: Invio lo imposta (limitato a min..max), Esc o un clic altrove annulla.
+    // x0/width: colonna in cui centrare il testo; width = 0 → nessuna centratura.
+    void valueField(uint32_t index, float min, float max, const char* format, float x0, float width)
+    {
+        // Modalità campo: si sta digitando il valore di questo parametro
+        if (fEditing == static_cast<int>(index))
+        {
+            if (width > 0.0f)
+                ImGui::SetCursorPosX(x0);
+            ImGui::SetNextItemWidth(width > 0.0f ? width : kCell * fZ);
+
+            if (fEditFocus)
+            {
+                ImGui::SetKeyboardFocusHere();   // il campo riceve subito la tastiera
+                fEditFocus = false;
+            }
+
+            ImGui::PushID(static_cast<int>(index));
+            const bool enter = ImGui::InputText("##edit", fEditBuf, sizeof(fEditBuf),
+                                                ImGuiInputTextFlags_EnterReturnsTrue
+                                              | ImGuiInputTextFlags_CharsDecimal
+                                              | ImGuiInputTextFlags_AutoSelectAll);
+            ImGui::PopID();
+
+            if (enter)
+            {
+                char* end = nullptr;
+                const float v = std::strtof(fEditBuf, &end);
+                if (end != fEditBuf)   // è stato scritto almeno un numero valido
+                    setParamFromClick(index, std::max(min, std::min(max, v)));
+                fEditing = -1;
+            }
+            else if (ImGui::IsItemDeactivated()
+                  || (ImGui::IsMouseClicked(0) && !ImGui::IsItemHovered() && !ImGui::IsItemActive()))
+            {
+                fEditing = -1;   // Esc o clic altrove: annulla
+            }
+            return;
+        }
+
+        // Modalità normale: il valore come testo, cliccabile
+        char value[32];
+        std::snprintf(value, sizeof(value), format, fParams[index]);
+        if (width > 0.0f)
+            centeredText(value, x0, width);
+        else
+            ImGui::TextUnformatted(value);
+
+        if (ImGui::IsItemClicked(0))
+        {
+            fEditing   = static_cast<int>(index);
+            fEditFocus = true;
+            std::snprintf(fEditBuf, sizeof(fEditBuf), "%g", fParams[index]);
+            getWindow().focus();   // la finestra del plugin riceve la tastiera (altrimenti resta all'host)
+        }
+    }
     // Pulsante evidenziato (sfondo panna, testo scuro) oppure normale
     bool styledButton(const char* label, bool highlighted, float width)
     {
@@ -313,6 +370,56 @@ protected:
         }
     }
 
+        // Livello in funzione della distanza (da 1 a maxDist metri) per la legge 1/d^transparency,
+    // con un punto per ogni distanza in points[0..count-1]. Stessa formula dei moduli "trasp".
+    void drawDistanceCurve(float w, float h, float transparency, float maxDist,
+                           const float* points, int count)
+    {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const ImVec2 o = ImGui::GetCursorScreenPos();
+        const float rangeDb = 72.0f;   // il grafico va da 0 a -72 dB
+
+        // Da distanza (m) a livello (dB), e da metri/dB a coordinate dello schermo
+        auto dbOf = [&](float d)  { return -20.0f * transparency * std::log10(d); };
+        auto xOf  = [&](float d)  { return o.x + w * (d - 1.0f) / (maxDist - 1.0f); };
+        auto yOf  = [&](float db) { return o.y + h * std::min(1.0f, -db / rangeDb); };
+
+        // Sfondo, cornice, griglia ogni 24 dB
+        dl->AddRectFilled(o, ImVec2(o.x + w, o.y + h), kGray426, 4.0f * fZ);
+        dl->AddRect(o, ImVec2(o.x + w, o.y + h), kCoolGray11, 4.0f * fZ);
+        for (int k = 1; k < 3; ++k)
+        {
+            const float y = o.y + h * k / 3.0f;
+            dl->AddLine(ImVec2(o.x, y), ImVec2(o.x + w, y), kGrid);
+        }
+
+        // Curva
+        constexpr int kPoints = 100;
+        ImVec2 pts[kPoints];
+        for (int i = 0; i < kPoints; ++i)
+        {
+            const float d = 1.0f + (maxDist - 1.0f) * i / (kPoints - 1);
+            pts[i] = ImVec2(xOf(d), yOf(dbOf(d)));
+        }
+        dl->AddPolyline(pts, kPoints, kCloud, 0, 2.0f * fZ);
+
+        // Un punto per ogni distanza richiesta
+        for (int i = 0; i < count; ++i)
+            dl->AddCircleFilled(ImVec2(xOf(points[i]), yOf(dbOf(points[i]))), 4.0f * fZ, kMocha);
+
+        // Etichette
+        char right[16];
+        std::snprintf(right, sizeof(right), "%.0f m", maxDist);
+        const float  ly = o.y + h + 2.0f * fZ;
+        const ImVec2 rs = ImGui::CalcTextSize(right);
+        dl->AddText(ImVec2(o.x + 4.0f * fZ, o.y + 2.0f * fZ), kCoolGray11, "0 dB");
+        dl->AddText(ImVec2(o.x, ly), kCoolGray11, "1 m");
+        dl->AddText(ImVec2(o.x + w - rs.x, ly), kCoolGray11, right);
+
+        // Riserva lo spazio: grafico + riga delle etichette
+        ImGui::Dummy(ImVec2(w, h + ImGui::GetTextLineHeightWithSpacing()));
+    }
+
     // Testo centrato in una colonna che parte da x0 (coordinate della finestra) larga width
     static void centeredText(const char* text, float x0, float width)
     {
@@ -323,6 +430,10 @@ protected:
 
 private:
     int fPendingReset = -1;      // parametro da riportare al default al rilascio (-1 = nessuno)
+    int  fEditing = -1;          // parametro il cui valore si sta digitando (-1 = nessuno)
+    bool fEditFocus = false;     // al primo frame del campo, dargli il fuoco della tastiera
+    char fEditBuf[32] = {};      // testo digitato
+
     ImGuiStyle fBaseStyle;       // stile a zoom 1: ogni frame viene ricopiato e scalato
     ResizeHandle fResizeHandle;  // maniglia di ridimensionamento in basso a destra
 
