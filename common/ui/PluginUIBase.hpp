@@ -265,6 +265,16 @@ protected:
             setParamFromClick(index, static_cast<float>(value));
     }
 
+    // Menu a tendina per un parametro intero (0..count-1)
+    void comboParam(const char* label, uint32_t index, const char* const items[], int count, float width)
+    {
+        int current = std::max(0, std::min(count - 1, static_cast<int>(fParams[index] + 0.5f)));
+
+        ImGui::SetNextItemWidth(width);
+        if (ImGui::Combo(label, &current, items, count))
+            setParamFromClick(index, static_cast<float>(current));
+    }
+
     // Pulsante on/off (parametri bool): evidenziato quando è acceso
     void toggleButton(const char* label, uint32_t index, float width)
     {
