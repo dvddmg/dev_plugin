@@ -34,6 +34,14 @@
             "compilerPath": "/usr/bin/clang++",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64"
+        },
+        {
+            "name": "test_basic",
+            "includePath": [ "${dpfIncludes}", "${workspaceFolder}/src/test_basic/plugin/source" ],
+            "defines": [ "DGL_OPENGL=1", "HAVE_OPENGL=1" ],
+            "compilerPath": "/usr/bin/clang++",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-arm64"
         }
     ],
     "version": 4
