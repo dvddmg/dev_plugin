@@ -54,8 +54,8 @@
 #X obj 723 307 send pan;
 #X obj 218 24 r pan;
 #X obj 456 139 r depth @hv_param 1 50 8;
-#X obj 723 283 r panning @hv_param 0 1 0;
 #X obj 456 163 s depthspk;
+#X obj 723 283 r panning @hv_param 0 1 1;
 #X connect 2 0 44 0;
 #X connect 3 0 44 1;
 #X connect 5 0 44 2;
@@ -105,5 +105,5 @@
 #X connect 51 0 0 7;
 #X connect 53 0 30 0;
 #X connect 53 0 29 1;
-#X connect 54 0 56 0;
-#X connect 55 0 52 0;
+#X connect 54 0 55 0;
+#X connect 56 0 52 0;
